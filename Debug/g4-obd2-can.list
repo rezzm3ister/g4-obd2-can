@@ -650,12 +650,12 @@ void Error_Handler(void)
  80006d8:	f003 fe2c 	bl	8004334 <memset>
   htim1.Instance = TIM1;
  80006dc:	4d37      	ldr	r5, [pc, #220]	@ (80007bc <main+0x248>)
-  htim1.Init.Prescaler = 170;
+  htim1.Init.Prescaler = 169;
  80006de:	4a38      	ldr	r2, [pc, #224]	@ (80007c0 <main+0x24c>)
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
  80006e0:	60ac      	str	r4, [r5, #8]
-  htim1.Init.Prescaler = 170;
- 80006e2:	23aa      	movs	r3, #170	@ 0xaa
+  htim1.Init.Prescaler = 169;
+ 80006e2:	23a9      	movs	r3, #169	@ 0xa9
  80006e4:	e9c5 2300 	strd	r2, r3, [r5]
   htim1.Init.Period = 99;
  80006e8:	2363      	movs	r3, #99	@ 0x63
