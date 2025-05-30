@@ -1,0 +1,7 @@
+../Custom/mgr_uart.c:37:6:uart_ondatarecv.part.0	5
+../Custom/mgr_uart.c:20:6:uart_testwrite	1
+../Custom/mgr_uart.c:27:6:HAL_UARTEx_RxEventCallback	1
+../Custom/mgr_uart.c:37:6:uart_ondatarecv	2
+../Custom/mgr_uart.c:91:6:uart_1msloop	1
+../Custom/mgr_uart.c:97:6:uart_init	1
+../Custom/mgr_uart.c:105:6:uart_mainloop	3

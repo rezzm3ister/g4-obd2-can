@@ -1,0 +1,7 @@
+../Custom/mgr_uart.c:37:6:uart_ondatarecv.part.0	336	static
+../Custom/mgr_uart.c:20:6:uart_testwrite	16	static
+../Custom/mgr_uart.c:27:6:HAL_UARTEx_RxEventCallback	0	static
+../Custom/mgr_uart.c:37:6:uart_ondatarecv	0	static
+../Custom/mgr_uart.c:91:6:uart_1msloop	0	static
+../Custom/mgr_uart.c:97:6:uart_init	8	static
+../Custom/mgr_uart.c:105:6:uart_mainloop	8	static

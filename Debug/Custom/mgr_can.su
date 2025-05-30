@@ -1,0 +1,12 @@
+../Custom/mgr_can.c:40:6:can_forceUnsupportedPid	0	static
+../Custom/mgr_can.c:47:6:can_isBusAlive	0	static
+../Custom/mgr_can.c:60:6:can_isPidValid	0	static
+../Custom/mgr_can.c:80:6:HAL_FDCAN_RxFifo0Callback	8	static
+../Custom/mgr_can.c:110:6:can_DataProcessing	0	static
+../Custom/mgr_can.c:156:6:can_onDataReceivedTurnon	8	static
+../Custom/mgr_can.c:177:6:can_onDataReceived	0	static
+../Custom/mgr_can.c:198:6:can_sendRequest	8	static
+../Custom/mgr_can.c:229:6:can_sendTurnOnRequest	4	static
+../Custom/mgr_can.c:259:6:can_init	8	static
+../Custom/mgr_can.c:276:6:can_timingloop	8	static
+../Custom/mgr_can.c:335:6:can_mainloop	16	static
