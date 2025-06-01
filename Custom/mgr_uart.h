@@ -8,15 +8,21 @@ extern uint16_t modb_db[MODB_SIZE];
 
 #define MODB_ADDR           0x69
 
-#define CURRENT_PID         modb_db[0x100]
-#define SUPPORTED_PID_1H    modb_db[0x101]
-#define SUPPORTED_PID_1L    modb_db[0x102]
-#define SUPPORTED_PID_2H    modb_db[0x103]
-#define SUPPORTED_PID_2L    modb_db[0x104]
-#define SUPPORTED_PID_3H    modb_db[0x105]
-#define SUPPORTED_PID_3L    modb_db[0x106]
-#define SUPPORTED_PID_4H    modb_db[0x107]
-#define SUPPORTED_PID_4L    modb_db[0x108]
+// #define CURRENT_PID         modb_db[0x100]
+// #define SUPPORTED_PID_1H    modb_db[0x101]
+// #define SUPPORTED_PID_1L    modb_db[0x102]
+// #define SUPPORTED_PID_2H    modb_db[0x103]
+// #define SUPPORTED_PID_2L    modb_db[0x104]
+// #define SUPPORTED_PID_3H    modb_db[0x105]
+// #define SUPPORTED_PID_3L    modb_db[0x106]
+// #define SUPPORTED_PID_4H    modb_db[0x107]
+// #define SUPPORTED_PID_4L    modb_db[0x108]
+
+
+//PID support at modbus address 0 to 0xFF
+// since modbus is 16-bit, data is stored across 2 registers for bigger data.
+// 0x1__ for low byte, 0x2__ for high byte
+
 
 typedef enum
 {

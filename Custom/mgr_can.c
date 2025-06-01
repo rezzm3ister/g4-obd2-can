@@ -132,6 +132,8 @@ void can_DataProcessing(uint8_t pid, uint8_t* data, uint8_t len)
             return;
     }
 
+
+    //ignore for now, processing done in python
     switch(pid)
     {
         case 0x01:
@@ -147,7 +149,8 @@ void can_DataProcessing(uint8_t pid, uint8_t* data, uint8_t len)
     }
 
     //temporary for now
-    modb_db[pid] = val; // Store the processed value in the modbus database
+    modb_db[0x100+pid] = val & 0xFFFF; // Store the processed value in the modbus database
+    modb_db[0x200+pid] = val >> 16; // Store the processed value in the modbus database
 }
 
 
@@ -239,15 +242,15 @@ void can_sendTurnOnRequest(void)
     can_tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // No Tx event FIFO control
     can_tx_header.MessageMarker = 0; // Not used in this context
 
-    // while(!can_isPidValid(turnon_target_pid)) // Ensure the target PID is valid
-    // {
-    //     turnon_target_pid++;
-    //     if(turnon_target_pid > CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
-    //     {
-    //         turnon_target_pid = 0x00; // Reset to 0x00
-    //         break;
-    //     }
-    // }
+    while(!can_isPidValid(turnon_target_pid)) // Ensure the target PID is valid
+    {
+        turnon_target_pid++;
+        if(turnon_target_pid > CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
+        {
+            turnon_target_pid = 0x00; // Reset to 0x00
+            break;
+        }
+    }
     memset(can_tx_data, 0xFF, 8); // Clear the data buffer
     can_tx_data[0] = 2; // Length of the request
     can_tx_data[1] = 0x01; // OBD-II request
@@ -335,7 +338,7 @@ void can_timingloop(void)
 void can_mainloop(void)
 {
     // Main loop for CAN message processing
-    CURRENT_PID = target_pid; // Update the current PID in the modbus database
+//    CURRENT_PID = target_pid; // Update the current PID in the modbus database
     // SUPPORTED_PID_1H = can_supported_headers[0] >> 16; // Update supported PIDs in modbus database
     // SUPPORTED_PID_1L = can_supported_headers[0] & 0xFFFF; // Update supported PIDs in modbus database
     // SUPPORTED_PID_2H = can_supported_headers[1] >> 16; // Update supported PIDs in modbus database
@@ -366,7 +369,7 @@ void can_mainloop(void)
             }
             for(int i=0;i<0x100;i++)
             {
-                modb_db[0x100+i] = supported_pid[i]; // Store the supported PIDs in the modbus database
+                modb_db[i] = supported_pid[i]; // Store the supported PIDs in the modbus database
             }
             can_state=CAN_WRITE;
             break;
@@ -386,7 +389,7 @@ void can_mainloop(void)
             break;
     }
 
-    modb_db[0x200] = can_state; // Update the modbus database with the current CAN state
-    modb_db[0x201] = requests;
-    modb_db[0x202] = responses; // Update the modbus database with the number of requests and responses
+    modb_db[0x300] = can_state; // Update the modbus database with the current CAN state
+    modb_db[0x301] = requests;
+    modb_db[0x302] = responses; // Update the modbus database with the number of requests and responses
 }

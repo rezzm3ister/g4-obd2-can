@@ -55,6 +55,7 @@ void sec_loop(void) //operates every second
         led_en = 1;
     }
     
+
     HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,led_en);
 }
 
