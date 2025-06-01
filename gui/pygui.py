@@ -5,14 +5,14 @@ import sys
 import minimalmodbus
 import serial
 from serial.tools import list_ports
-
+from tqdm import tqdm
 import time
 
 app=QApplication(sys.argv)
 
 MODB_SIZE=0x400
 MODB_MAX_RD_REGS=0x7D
-GRID_MAX_ROWS = 0x20
+GRID_MAX_ROWS = 0x18
 modb_db = [] #raw Modbus data
 processed_modb_db = [] #processed Modbus data, to be used in GUI
 com_port=None
@@ -21,6 +21,10 @@ modb = None
 supported_registers = []
 baudrate = 500000
 supported_baudrates = [500000, 250000, 115200, 57600, 38400, 19200, 9600]
+
+log_enabled = False
+log_file = None
+fast_mode = False
 
 sys_run=False
 modb = None
@@ -177,21 +181,93 @@ class ModbThread(QThread):
 
     def process_modb_db(self):
         global modb_db, processed_modb_db
+        #groups of registers that use the same formulas
+        percent_registers = [0x04,0x11,0x2c,0x2e,0x2f,0x43,0x45,0x47,0x48,0x49,0x4a,0x4b,0x4c,0x52,0x5a,0x5b,0x64]
+        temperature_1b_registers = [0x05,0x0F,0x46,0x5C]
+        temperature_2b_registers = [0x3C,0x3D,0x3E,0x3F]
+        fuel_trim_registers = [0x06,0x07,0x08,0x09,0x55,0x56,0x57,0x58]
+        o2_sensor_registers_group1 = [0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x1B]
+        o2_sensor_registers_group2 = [0x24,0x25,0x26,0x27,0x28,0x29,0x2A,0x2B]
+        o2_sensor_registers_group3 = [0x34,0x35,0x36,0x37,0x38,0x39,0x3A,0x3B]
+        o2_sensor_registers_group4 = [0x55,0x56,0x57,0x58]
+        val = 0
+
         for i in range(len(modb_db)):
             if i in supported_registers:
-                processed_modb_db[i] = (modb_db[i + 0x200] << 16) | (modb_db[i + 0x100] & 0xFFFF)
+                val = (modb_db[i + 0x200] << 16) | (modb_db[i + 0x100] & 0xFFFF)
+                if i in percent_registers:
+                    val = (val / 255.0) * 100.0
+                elif i in temperature_1b_registers:
+                    val = val-40
+                elif i in temperature_2b_registers:
+                    val  =(val/10)-40
+                elif i in fuel_trim_registers:
+                    val = (val/128)-100
+                elif i in o2_sensor_registers_group1:
+                    val = val/200
+                elif i in o2_sensor_registers_group2:
+                    val = val*2/65536
+                elif i in o2_sensor_registers_group3:
+                    val = (val>>16)*2/65536
+                elif i in o2_sensor_registers_group4:
+                    val =val*100/128 - 100
+                elif i == 0x0A:  # Fuel pressure
+                    val = 3*val
+                elif i == 0x0C:  # Engine RPM
+                    val=val/4
+                elif i == 0x0E:  # Timing advance
+                    val = (val / 2.0) - 64.0
+                elif i == 0x10:  # MAF air flow rate
+                    val = val / 100.0
+                elif i == 0x22:
+                    val = val * 0.079
+                elif i == 0x23:
+                    val=val*10
+                elif i == 0x2D:
+                    val = val*100/128 -100
+                elif i == 0x32:
+                    val = val/4
+                elif i == 0x42:
+                    val = val/1000
+                elif i == 0x44:
+                    val = val * 2 / 65536
+                elif i == 0x50:
+                    val = val*10
+                elif i == 0x53:
+                    val = val/200
+                elif i == 0x59:
+                    val = val*10
+                elif i == 0x5D:
+                    val = val/128-210
+                elif i == 0x5E:
+                    val = val/20
+                elif i == 0x61:
+                    val = val-125
+                elif i == 0x62:
+                    val = val-125
+                
+                #i cant be assed to make more if statements, so just make the rest read raw
+                else:
+                    None
+                    # print((hex(i)))
             else:
-                processed_modb_db[i] = 0
-        
+                val = 0
+            processed_modb_db[i] = val
 
     def run(self):
         global modb, cycle_readtime
         global sys_run
         internal_cycle_readtime = time.time()
+        fastmode_timer=time.time()
         print("Modbus thread started")
         while True:
             if sys_run:
-                modb_start_addr=0x100
+                if(time.time() - fastmode_timer > 1):
+                    if fast_mode:
+                        modb.write_register(0x300,1,functioncode=6)
+                    else:
+                        modb.write_register(0x300,0,functioncode=6)
+                    fastmode_timer = time.time()
                 # starttime = time.time()
                 # starttime = time.time()
                 internal_cycle_readtime = time.time()
@@ -225,13 +301,17 @@ class MainWindow(QMainWindow):
     modb_dev_addr_selector = None
     layout = QGridLayout()
     test_label = QLabel("Not Running")
+    log_label = QLabel("Logging OFF")
     cycletimelabel = QLabel("Cycle read time:__")
     baudrate_widget = QComboBox()
     sys_enable = False
     sys_active_label=QLabel("System is inactive")
     # start_btn = 
-    start_btn = QPushButton("Start/stop")
+    start_btn = QPushButton("Start/stop View")
+    log_btn = QPushButton("Start/stop Logging")
     mainthread= ModbThread()
+    fastmode_checkbox = QCheckBox("Fast mode")
+    fastmode_checkbox.setChecked(False)
     test_reg=0
     test=0
     pid_widget_list = []
@@ -288,10 +368,17 @@ class MainWindow(QMainWindow):
 
         self.layout.addWidget(self.cycletimelabel, 3, 2)
 
-        start_btn = QPushButton("Start/stop")
+        # start_btn = QPushButton("Start/stop")
         # start_btn.setCheckable(True)
-        start_btn.clicked.connect(self.start_stop)
-        self.layout.addWidget(start_btn, 1, 2, 2,1)
+        self.start_btn.clicked.connect(self.start_stop)
+        self.layout.addWidget(self.start_btn, 1, 2, 2,2)
+        self.log_btn.clicked.connect(self.log_start_stop)
+        self.layout.addWidget(self.log_btn, 1, 4, 2,2)
+        self.layout.addWidget(self.log_label, 3, 4, 1, 2)
+
+
+        self.fastmode_checkbox.stateChanged.connect(self.getFastMode)
+        self.layout.addWidget(self.fastmode_checkbox, 0, 2)
         self.mainthread.start()
 
         
@@ -306,6 +393,15 @@ class MainWindow(QMainWindow):
     #     baudrate = self.baudrate_widget.currentText()
     #     print("selected baudrate:", baudrate)
 
+    def getFastMode(self):
+        global fast_mode
+        if self.fastmode_checkbox.isChecked():
+            fast_mode = True
+            print("Fast mode enabled")
+        else:
+            fast_mode = False
+            print("Fast mode disabled")
+
     def add_pids(self):
         for i in supported_registers:
             self.pid_widget_list.append(QLabel(str(hex(i)) + " " + OBD_PIDS.get(i, "Unknown PID")))
@@ -313,7 +409,8 @@ class MainWindow(QMainWindow):
             # print("added PID:", hex(i))
         wrow=4
         wcol=0
-        for i in self.pid_widget_list:
+        print("Adding PIDs to layout")
+        for i in tqdm(self.pid_widget_list):
             self.layout.addWidget(i,wrow,wcol)
             wrow += 1
             if wrow >= GRID_MAX_ROWS:
@@ -321,13 +418,25 @@ class MainWindow(QMainWindow):
                 wcol += 2
         wrow=4
         wcol=1
-        for i in self.pid_data_list:
+        print("Adding PID data to layout")
+        for i in tqdm(self.pid_data_list):
             i[0].setStyleSheet("background-color: white")
             self.layout.addWidget(i[0], wrow, wcol)
             wrow += 1
             if wrow >= GRID_MAX_ROWS:
                 wrow = 4
                 wcol += 2
+
+    def log_start_stop(self):
+        global log_enabled
+        log_enabled = not log_enabled
+        if log_enabled:
+            print("Logging started")
+            self.log_label.setText("Logging ON")
+        else:
+            print("Logging stopped")
+            self.log_label.setText("Logging OFF")
+        None
 
     def start_stop(self):
         print(self.comport_selector.currentText())

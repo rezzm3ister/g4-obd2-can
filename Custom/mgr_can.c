@@ -57,9 +57,37 @@ bool can_isBusAlive(void)
     return false; // If no PIDs are supported, the bus is considered dead
 }
 
+bool can_isFastPID(uint8_t pid)
+{
+    switch(pid)
+    {
+        case 0x04:
+        case 0x05:
+        case 0x0B:
+        case 0x0C:
+        case 0x0D:
+        case 0x0E:
+        case 0x0F:
+        case 0x10:
+        case 0x11:
+        case 0x44:
+        case 0x45:
+        case 0x47:
+        case 0x48:
+        case 0x49:
+        case 0x4A:
+        case 0x4C:
+            return true; // These PIDs are considered fast
+        default:
+            return false; // Other PIDs are not considered fast
+    }
+}
+
 bool can_isPidValid(uint8_t pid)
 {
     if(pid > CAN_MAX_PID) return false; // Check if PID is within valid range
+    // bool is_valid = false;
+    //always ignore these PIDs
     switch(pid)
     {
         case 0x00:
@@ -200,15 +228,28 @@ void can_onDataReceived()
 
 void can_sendRequest(void)
 {
-    while(!supported_pid[target_pid])
+
+    bool is_valid_pid = 0;
+    do
     {
-        target_pid++;
-        if(target_pid>CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
+        if(FAST_MODE)
         {
-            target_pid = start_pid;
-            break;
+            is_valid_pid = can_isFastPID(target_pid) && supported_pid[target_pid];
         }
-    }
+        else
+        {
+            is_valid_pid = supported_pid[target_pid]; // Check if the target PID is supported
+        }
+        if(!is_valid_pid) // If the PID is not supported, increment it
+        {
+            target_pid++;
+            if(target_pid > CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
+            {
+                target_pid = start_pid; // Reset to 0x04
+                break;
+            }
+        }
+    }while(!is_valid_pid);
 
     can_tx_header.Identifier = 0x7DF; // Standard ID for OBD-II requests
     can_tx_header.IdType = FDCAN_STANDARD_ID;
@@ -288,7 +329,11 @@ void can_timingloop(void)
             else
             {
                 #ifdef CAN_DEBUG
-                can_state = CAN_WRITE;
+                can_state = CAN_FINISH_TURNON;
+                for(int i=0;i<0x100;i++)
+                {
+                    supported_pid[i] = 1; // Mark all PIDs as supported for debugging
+                }
                 #else
                 can_state = CAN_TURNON;
                 #endif
@@ -389,7 +434,7 @@ void can_mainloop(void)
             break;
     }
 
-    modb_db[0x300] = can_state; // Update the modbus database with the current CAN state
-    modb_db[0x301] = requests;
-    modb_db[0x302] = responses; // Update the modbus database with the number of requests and responses
+    // modb_db[0x300] = can_state; // Update the modbus database with the current CAN state
+    // modb_db[0x301] = requests;
+    // modb_db[0x302] = responses; // Update the modbus database with the number of requests and responses
 }
