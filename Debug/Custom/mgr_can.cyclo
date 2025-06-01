@@ -7,7 +7,7 @@
 ../Custom/mgr_can.c:187:6:can_onDataReceivedTurnon	2
 ../Custom/mgr_can.c:208:6:can_onDataReceived	6
 ../Custom/mgr_can.c:229:6:can_sendRequest	14
-../Custom/mgr_can.c:282:6:can_sendTurnOnRequest	9
-../Custom/mgr_can.c:312:6:can_init	3
-../Custom/mgr_can.c:329:6:can_timingloop	8
-../Custom/mgr_can.c:392:6:can_mainloop	10
+../Custom/mgr_can.c:273:6:can_sendTurnOnRequest	9
+../Custom/mgr_can.c:303:6:can_init	3
+../Custom/mgr_can.c:320:6:can_timingloop	8
+../Custom/mgr_can.c:383:6:can_mainloop	10
