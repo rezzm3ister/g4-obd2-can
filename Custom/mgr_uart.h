@@ -18,8 +18,12 @@ extern uint16_t modb_db[MODB_SIZE];
 // #define SUPPORTED_PID_4H    modb_db[0x107]
 // #define SUPPORTED_PID_4L    modb_db[0x108]
 
+//0x300 - 0x3FF are reserved for config and debugging
+
 //flag for fast logging, cuts down on CAN traffic
 #define FAST_MODE modb_db[0x300]
+
+#define CAN_LOOP_TIME modb_db[0x301] // 0x301
 
 //PID support at modbus address 0 to 0xFF
 // since modbus is 16-bit, data is stored across 2 registers for bigger data.

@@ -8,6 +8,8 @@ uint16_t requests=0;
 uint16_t responses=0;
 uint8_t target_pid = 0x00; // Default PID to request
 uint8_t turnon_target_pid = 0x00; // Default PID to request
+uint16_t can_time=0;
+
 
 FDCAN_TxHeaderTypeDef can_tx_header;
 uint8_t can_tx_data[8]; // Data buffer for CAN transmission
@@ -319,6 +321,11 @@ uint16_t can_init_timer=CAN_WAKEUP_TIME;
 uint32_t can_timeout=CAN_TIMEOUT;
 void can_timingloop(void)
 {
+    can_time++;
+    if(can_time > 0xFFFF) // Reset can_time to prevent overflow
+    {
+        can_time = 0;
+    }
     switch(can_state)
     {
         case CAN_INIT:
@@ -420,6 +427,11 @@ void can_mainloop(void)
             break;
         case CAN_WRITE:
             // Check for incoming messages or send requests
+            if(target_pid == start_pid)
+            {
+                CAN_LOOP_TIME = can_time;
+                can_time=0;
+            }
             can_sendRequest();
             can_state = CAN_WAIT_RSP; // Transition to waiting for response state
             break;

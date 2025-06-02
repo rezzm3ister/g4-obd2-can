@@ -7,12 +7,14 @@ import serial
 from serial.tools import list_ports
 from tqdm import tqdm
 import time
+from datetime import datetime
 
 app=QApplication(sys.argv)
 
 MODB_SIZE=0x400
 MODB_MAX_RD_REGS=0x7D
 GRID_MAX_ROWS = 0x18
+DIAG_GRID_ROW_START = 5
 modb_db = [] #raw Modbus data
 processed_modb_db = [] #processed Modbus data, to be used in GUI
 com_port=None
@@ -30,6 +32,8 @@ sys_run=False
 modb = None
 
 cycle_readtime=0
+
+can_interval = 0
 
 # PID list based on https://en.wikipedia.org/wiki/OBD-II_PIDs
 OBD_PIDS = {
@@ -262,7 +266,7 @@ class ModbThread(QThread):
         print("Modbus thread started")
         while True:
             if sys_run:
-                if(time.time() - fastmode_timer > 1):
+                if(time.time() - fastmode_timer > 5):
                     if fast_mode:
                         modb.write_register(0x300,1,functioncode=6)
                     else:
@@ -277,21 +281,18 @@ class ModbThread(QThread):
                 rx_modb = modb.read_registers(0x200, MODB_MAX_RD_REGS)
                 for i in range(len(rx_modb)):
                     modb_db[i+0x200] = rx_modb[i]
-                # while (modb_start_addr + 0x7D) < 0x300:
-                #     rx_modb = modb.read_registers(modb_start_addr, 0x7D)
-                #     for i in range(len(rx_modb)):
-                #         modb_db[i+modb_start_addr] = rx_modb[i]
-                #     modb_start_addr += 0x7D
+                rx_modb = modb.read_registers(0x300, 10)
+                for i in range(len(rx_modb)):
+                    modb_db[i+0x300] = rx_modb[i]
 
-                # cycle_readtime = time.time() - cycle_readtime
-                # print("Modbus thread running")
-                # rx_modb = modb.read_registers(0, 125)
-                # for i in range(len(rx_modb)):
-                #     modb_db[i] = rx_modb[i]
-                # Perform Modbus operations
-                # pass
                 cycle_readtime = time.time() - internal_cycle_readtime
+                can_interval = modb_db[0x301]/10
                 self.process_modb_db()
+                if(log_enabled and log_file is not None):
+                    log_line = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ","
+                    for reg in supported_registers:
+                        log_line += str(processed_modb_db[reg]) + ","
+                    log_file.write(log_line + "\n")
                 # print("Cycle read time:", cycle_readtime)
 
 
@@ -303,6 +304,7 @@ class MainWindow(QMainWindow):
     test_label = QLabel("Not Running")
     log_label = QLabel("Logging OFF")
     cycletimelabel = QLabel("Cycle read time:__")
+    cantimelabel = QLabel("CAN read time:__")
     baudrate_widget = QComboBox()
     sys_enable = False
     sys_active_label=QLabel("System is inactive")
@@ -364,9 +366,11 @@ class MainWindow(QMainWindow):
         # self.test_label = QLabel("testreg")
         self.layout.addWidget(self.test_label, 3, 0)
 
-        self.layout.addWidget(QLabel("interval:"), 3, 1)
+        self.layout.addWidget(QLabel("LOG interval:"), 3, 1)
+        self.layout.addWidget(QLabel("CAN interval:"), 4, 1)
 
         self.layout.addWidget(self.cycletimelabel, 3, 2)
+        self.layout.addWidget(self.cantimelabel, 4, 2)
 
         # start_btn = QPushButton("Start/stop")
         # start_btn.setCheckable(True)
@@ -378,7 +382,7 @@ class MainWindow(QMainWindow):
 
 
         self.fastmode_checkbox.stateChanged.connect(self.getFastMode)
-        self.layout.addWidget(self.fastmode_checkbox, 0, 2)
+        self.layout.addWidget(self.fastmode_checkbox, 0, 2,1,2)
         self.mainthread.start()
 
         
@@ -407,16 +411,16 @@ class MainWindow(QMainWindow):
             self.pid_widget_list.append(QLabel(str(hex(i)) + " " + OBD_PIDS.get(i, "Unknown PID")))
             self.pid_data_list.append([QLabel("0"),i])
             # print("added PID:", hex(i))
-        wrow=4
+        wrow=DIAG_GRID_ROW_START
         wcol=0
         print("Adding PIDs to layout")
         for i in tqdm(self.pid_widget_list):
             self.layout.addWidget(i,wrow,wcol)
             wrow += 1
             if wrow >= GRID_MAX_ROWS:
-                wrow = 4
+                wrow = DIAG_GRID_ROW_START
                 wcol += 2
-        wrow=4
+        wrow=DIAG_GRID_ROW_START
         wcol=1
         print("Adding PID data to layout")
         for i in tqdm(self.pid_data_list):
@@ -424,24 +428,38 @@ class MainWindow(QMainWindow):
             self.layout.addWidget(i[0], wrow, wcol)
             wrow += 1
             if wrow >= GRID_MAX_ROWS:
-                wrow = 4
+                wrow = DIAG_GRID_ROW_START
                 wcol += 2
 
     def log_start_stop(self):
-        global log_enabled
+        global log_enabled, log_file
+        if not sys_run:
+            QMessageBox.critical(self, "Error", f"System needs to be running to log data.\nPlease start the system first.")
+            return
+
         log_enabled = not log_enabled
         if log_enabled:
             print("Logging started")
             self.log_label.setText("Logging ON")
+            print(supported_registers)
+            csv_header="Timestamp,"
+            if log_file is None:
+                log_file = open("obd2_log"+datetime.now().strftime("%Y%m%d_%H%M%S")+".csv", "w")
+                for reg in supported_registers:
+                    csv_header += str(hex(reg)) + ","
+                log_file.write(csv_header + "\n")
         else:
             print("Logging stopped")
+            if log_file is not None:
+                log_file.close()
+                log_file = None
             self.log_label.setText("Logging OFF")
         None
 
     def start_stop(self):
-        print(self.comport_selector.currentText())
-        print(self.modb_dev_addr_selector.currentData())
-        print(self.baudrate_widget.currentText())
+        # print(self.comport_selector.currentText())
+        # print(self.modb_dev_addr_selector.currentData())
+        # print(self.baudrate_widget.currentText())
         global com_port, modb_addr, baudrate, modb_db, sys_run, modb
 
         com_port = self.comport_selector.currentText()
@@ -500,6 +518,7 @@ class MainWindow(QMainWindow):
         #             processed_modb_db[i] = 0
         # self.test_label.setText("testreg: " + str(int(modb_db[0])))
         self.cycletimelabel.setText(str(round(cycle_readtime*1000,2)) + " ms")
+        self.cantimelabel.setText(str(round(can_interval,2)) + " ms")
         for i in range(len(self.pid_data_list)):
             self.pid_data_list[i][0].setText(str(processed_modb_db[self.pid_data_list[i][1]]))
             if processed_modb_db[self.pid_data_list[i][1]] > 0:
