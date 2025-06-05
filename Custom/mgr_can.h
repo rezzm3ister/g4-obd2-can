@@ -2,10 +2,11 @@
 #define MGR_CAN_H
 #include "appl_main.h"
 
-#define CAN_WAKEUP_TIME 50000
-#define CAN_TIMEOUT 500
-#define CAN_STARTUP_TIMEOUT 500
-#define CAN_MAX_PID 0xBF
+#define CAN_WAKEUP_TIME 30000
+#define CAN_TIMEOUT 250
+#define CAN_TIMEOUT_FAST 100
+#define CAN_STARTUP_TIMEOUT 1000
+#define CAN_MAX_PID 0x80
 // #define CAN_START_PID 0x04
 // #define CAN_DEBUG
 
@@ -19,8 +20,13 @@ typedef enum
     CAN_WRITE,
     CAN_WAIT_RSP,
     CAN_PROCESSING,
+    CAN_WRITE_SLOW,
+    CAN_WAIT_RSP_SLOW,
+    CAN_PROCESSING_SLOW,
     CAN_OFF
 } can_state_t;
+
+#define FAST_PID_COUNT 17
 
 // bool can_is_pid_supported(uint8_t pid);
 void can_onDataReceivedTurnon();

@@ -259,7 +259,7 @@ class ModbThread(QThread):
             processed_modb_db[i] = val
 
     def run(self):
-        global modb, cycle_readtime
+        global modb, cycle_readtime, can_interval
         global sys_run
         internal_cycle_readtime = time.time()
         fastmode_timer=time.time()
