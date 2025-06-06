@@ -19,6 +19,9 @@ FDCAN_TxHeaderTypeDef can_tx_header;
 uint8_t can_tx_data[8]; // Data buffer for CAN transmission
 FDCAN_RxHeaderTypeDef can_rx_header;
 uint8_t can_rx_data[8]; // Data buffer for CAN reception
+uint8_t can_rx_data_buf[8]; // Data buffer for CAN reception
+
+
 
 uint8_t fast_pids[FAST_PID_COUNT] = {
     0x04, // PID 0x04
@@ -35,10 +38,10 @@ uint8_t fast_pids[FAST_PID_COUNT] = {
     // 0x44, // PID 0x44
     0x45, // PID 0x45
     0x47, // PID 0x47
-    0x48, // PID 0x48
+    // 0x48, // PID 0x48
     0x49, // PID 0x49
     0x4A, // PID 0x4A
-    0x4B, // PID 0x4B
+    // 0x4B, // PID 0x4B
     0x4C, // PID 0x4C
 };
 
@@ -69,6 +72,7 @@ uint8_t start_pid=0;
 
 void can_forceUnsupportedPid(void)
 {
+    //dont support rereading support list
     supported_pid[0x00] = 0; // Mark PID 0x00 as unsupported
     supported_pid[0x01] = 0; // Mark PID 0x01 as unsupported
     supported_pid[0x02] = 0; // Mark PID 0x02 as unsupported
@@ -78,6 +82,54 @@ void can_forceUnsupportedPid(void)
     supported_pid[0x80] = 0; // Mark PID 0x80 as unsupported
     supported_pid[0xA0] = 0; // Mark PID 0xA0 as unsupported
     supported_pid[0xC0] = 0; // Mark PID 0xC0 as unsupported
+    
+    //dont support o2 sensors
+    supported_pid[0x14] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x15] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x16] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x17] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x18] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x19] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x1A] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x1B] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x1D] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x1E] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x24] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x25] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x26] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x27] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x28] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x29] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x2A] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x2B] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x34] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x35] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x36] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x37] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x38] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x39] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x3A] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x3B] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x55] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x56] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x57] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x58] = 0; // Mark PID 0xC0 as unsupported
+
+    //EGR
+    supported_pid[0x12] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x2C] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x2D] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x2E] = 0; // Mark PID 0xC0 as unsupported
+
+    //fuel rail pressure relative to manifold vacuum
+    supported_pid[0x22] = 0; // Mark PID 0xC0 as unsupported
+    
+    //error related
+    supported_pid[0x4D] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x4E] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x4F] = 0; // Mark PID 0xC0 as unsupported
+
+
 
 }
 
@@ -104,11 +156,11 @@ bool can_isFastPID(uint8_t pid)
         case 0x0C:
         case 0x0D:
         case 0x0E:
-        // case 0x0F:
+        case 0x0F:
         case 0x10:
         case 0x11:
         case 0x42:
-        case 0x44:
+        // case 0x44:
         case 0x45:
         case 0x47:
         case 0x48:
@@ -170,12 +222,15 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     }
     else if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
     {
+        memcpy(can_rx_data_buf,can_rx_data,8);
         can_state = CAN_PROCESSING; // Set state to processing after receiving data
         // can_onDataReceived(); // Process the received CAN message
     }
     else if (can_state == CAN_WAIT_RSP_SLOW && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
     {
+        memcpy(can_rx_data_buf,can_rx_data,8);
         can_state = CAN_PROCESSING_SLOW; // Set state to processing after receiving data
+        
         // can_onDataReceived(); // Process the received CAN message
     }
 }
@@ -304,19 +359,19 @@ void can_onDataReceived()
     //         break;
     // }
 
-    can_DataProcessing(target_pid,&can_rx_data[3],can_rx_data[0]-2); // Process the received data
+    can_DataProcessing(target_pid,&can_rx_data_buf[3],can_rx_data_buf[0]-2); // Process the received data
 
-    switch(can_state)
-    {
-        case CAN_PROCESSING:
-            target_pid_fast_idx++;
-        break;
-        case CAN_PROCESSING_SLOW:
-            target_pid_slow++;
-        break;
-        default:
-            break;
-    }
+    // switch(can_state)
+    // {
+    //     case CAN_PROCESSING:
+    //         target_pid_fast_idx++;
+    //     break;
+    //     case CAN_PROCESSING_SLOW:
+    //         target_pid_slow++;
+    //     break;
+    //     default:
+    //         break;
+    // }
     
     switch(can_state)
     {
@@ -521,6 +576,7 @@ void can_init(void)
 
 uint16_t can_init_timer=CAN_WAKEUP_TIME;
 uint32_t can_timeout=CAN_TIMEOUT;
+bool can_timedout=0;
 void can_timingloop(void)
 {
     can_time++;
@@ -553,22 +609,7 @@ void can_timingloop(void)
             }
             else
             {
-                can_timeout=CAN_STARTUP_TIMEOUT; // Reset timeout for next turn-on request
-                can_state = CAN_TURNON;
-
-                // can_supported_headers[turnon_target_pid/0x20] = 0; // Mark the PID as supported
-                // supported_pid[turnon_target_pid] = 0; // Mark the PID as not supported
-                turnon_target_pid += 0x20; // Reset target PID to the next one
-                if(turnon_target_pid > CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
-                {
-                    turnon_target_pid = 0; // Reset to 0x00
-                    can_state = CAN_FINISH_TURNON; // Reset state to write next request
-                    can_timeout=CAN_TIMEOUT_FAST;
-                    // if(!can_isBusAlive()) // Check if the bus is alive
-                    // {
-                    //     can_state = CAN_OFF; // If no PIDs are supported, set state to OFF
-                    // }
-                }
+                can_timedout=1;
             }
             break;
         case CAN_WAIT_RSP:
@@ -578,17 +619,7 @@ void can_timingloop(void)
             }
             else
             {
-                can_timeout=CAN_TIMEOUT_FAST;
-                can_state = CAN_WRITE;
-                target_pid_fast_idx++;
-                if(target_pid_fast_idx==FAST_PID_COUNT)
-                {
-                    target_pid_fast_idx=0;
-                    can_state = CAN_WRITE_SLOW;
-                    can_timeout=CAN_TIMEOUT;
-
-                    break;
-                }
+                can_timedout=1;
             }
             break;
         case CAN_WAIT_RSP_SLOW:
@@ -598,15 +629,7 @@ void can_timingloop(void)
             }
             else
             {
-                modb_db[target_pid + 0x400]++;
-                if(modb_db[target_pid + 0x400]==0xFFFF)  modb_db[target_pid + 0x400]=0;
-                can_timeout=CAN_TIMEOUT_FAST;
-                can_state = CAN_WRITE;
-                target_pid_slow++;
-                if(target_pid_slow==CAN_MAX_PID)
-                {
-                    target_pid_slow=0;
-                }
+                can_timedout=1;
             }
             break;
     }
@@ -639,7 +662,30 @@ void can_mainloop(void)
         case CAN_TURNON_PROCESSING:
             can_onDataReceivedTurnon();
             break;
-            
+        
+        case CAN_TURNON_WAIT_RSP:
+            if(can_timedout)
+            {
+                can_timedout=0;
+                can_timeout=CAN_STARTUP_TIMEOUT; // Reset timeout for next turn-on request
+                can_state = CAN_TURNON;
+
+                // can_supported_headers[turnon_target_pid/0x20] = 0; // Mark the PID as supported
+                // supported_pid[turnon_target_pid] = 0; // Mark the PID as not supported
+                turnon_target_pid += 0x20; // Reset target PID to the next one
+                if(turnon_target_pid > CAN_MAX_PID) // Wrap around if PID exceeds 0xDF
+                {
+                    turnon_target_pid = 0; // Reset to 0x00
+                    can_state = CAN_FINISH_TURNON; // Reset state to write next request
+                    can_timeout=CAN_TIMEOUT;
+                    // if(!can_isBusAlive()) // Check if the bus is alive
+                    // {
+                    //     can_state = CAN_OFF; // If no PIDs are supported, set state to OFF
+                    // }
+                }
+            }
+                
+
         case CAN_FINISH_TURNON:
             can_processSupportedPIDs();
             if(!can_isBusAlive()) // Check if the bus is alive
@@ -663,6 +709,22 @@ void can_mainloop(void)
             can_sendRequest();
             can_state = CAN_WAIT_RSP; // Transition to waiting for response state
             break;
+        case CAN_WAIT_RSP:
+            if(can_timedout)
+            {
+                can_timedout=0;
+                can_timeout=CAN_TIMEOUT;
+                can_state = CAN_WRITE;
+                target_pid_fast_idx++;
+                if(target_pid_fast_idx==FAST_PID_COUNT)
+                {
+                    target_pid_fast_idx=0;
+                    can_state = CAN_WRITE_SLOW;
+                    can_timeout=CAN_TIMEOUT;
+                }
+            }
+            break;
+            
         case CAN_PROCESSING:
             // Process the received data
             can_onDataReceived(); // Process the received CAN message
@@ -675,7 +737,21 @@ void can_mainloop(void)
             can_sendRequest();
             can_state = CAN_WAIT_RSP_SLOW;
         break;
-
+        case CAN_WAIT_RSP_SLOW:
+            if(can_timedout)
+            {
+                can_timedout=0;
+                modb_db[target_pid + 0x400]++;
+                if(modb_db[target_pid + 0x400]==0xFFFF)  modb_db[target_pid + 0x400]=0;
+                can_timeout=CAN_TIMEOUT;
+                can_state = CAN_WRITE;
+                target_pid_slow++;
+                if(target_pid_slow==CAN_MAX_PID)
+                {
+                    target_pid_slow=0;
+                }
+            }
+            break;
         case CAN_PROCESSING_SLOW:
         can_onDataReceived();
         //processes slow data
@@ -685,6 +761,7 @@ void can_mainloop(void)
             break;
     }
 
+    // modb_db[0x302]=target_pid_slow;
     // modb_db[0x300] = can_state; // Update the modbus database with the current CAN state
     // modb_db[0x301] = requests;
     // modb_db[0x302] = responses; // Update the modbus database with the number of requests and responses

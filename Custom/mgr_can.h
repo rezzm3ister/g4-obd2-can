@@ -3,10 +3,11 @@
 #include "appl_main.h"
 
 #define CAN_WAKEUP_TIME 30000
-#define CAN_TIMEOUT 250
-#define CAN_TIMEOUT_FAST 100
+#define CAN_TIMEOUT 125
+// #define CAN_TIMEOUT_FAST 250
 #define CAN_STARTUP_TIMEOUT 1000
-#define CAN_MAX_PID 0x80
+// #define CAN_MAX_PID 0x80
+#define CAN_MAX_PID 0x60
 // #define CAN_START_PID 0x04
 // #define CAN_DEBUG
 
@@ -26,7 +27,7 @@ typedef enum
     CAN_OFF
 } can_state_t;
 
-#define FAST_PID_COUNT 17
+#define FAST_PID_COUNT 15
 
 // bool can_is_pid_supported(uint8_t pid);
 void can_onDataReceivedTurnon();

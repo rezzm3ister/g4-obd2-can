@@ -12,6 +12,10 @@ uint32_t t1=0;
 uint8_t one_sec_flag=0;
 uint32_t uptime_timer=0;
 
+uint32_t main_loop_dur=0;
+uint32_t main_loop_timer=0;
+
+
 void custom_init(void)
 {
     // HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
@@ -24,6 +28,7 @@ void custom_init(void)
 //does things every 0.1ms
 void timing_loop(void) //10khz
 {
+    main_loop_timer++;
     if(t1<10000)
     {
         t1++;
@@ -62,6 +67,8 @@ void sec_loop(void) //operates every second
 //does things whenever it can
 void main_loop(void)
 {
+    main_loop_dur=main_loop_timer;
+    main_loop_timer=0;
     if(one_sec_flag)
     {
         sec_loop();
