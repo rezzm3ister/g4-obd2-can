@@ -33,9 +33,10 @@ uint8_t fast_pids[FAST_PID_COUNT] = {
     // 0x0F, // PID 0x0F (commented out)
     0x10, // PID 0x10
     0x11, // PID 0x11
+    0x34,
     0x42, // PID 0x42
     0x43, // PID 0x43
-    // 0x44, // PID 0x44
+    0x44, // PID 0x44
     0x45, // PID 0x45
     0x47, // PID 0x47
     // 0x48, // PID 0x48
@@ -102,7 +103,7 @@ void can_forceUnsupportedPid(void)
     supported_pid[0x29] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x2A] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x2B] = 0; // Mark PID 0xC0 as unsupported
-    supported_pid[0x34] = 0; // Mark PID 0xC0 as unsupported
+    // supported_pid[0x34] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x35] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x36] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x37] = 0; // Mark PID 0xC0 as unsupported
