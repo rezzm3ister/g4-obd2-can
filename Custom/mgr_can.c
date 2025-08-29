@@ -95,6 +95,7 @@ void can_forceUnsupportedPid(void)
     supported_pid[0x1B] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x1D] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x1E] = 0; // Mark PID 0xC0 as unsupported
+    supported_pid[0x1F] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x24] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x25] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x26] = 0; // Mark PID 0xC0 as unsupported
@@ -126,6 +127,7 @@ void can_forceUnsupportedPid(void)
     supported_pid[0x22] = 0; // Mark PID 0xC0 as unsupported
     
     //error related
+    supported_pid[0x41] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x4D] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x4E] = 0; // Mark PID 0xC0 as unsupported
     supported_pid[0x4F] = 0; // Mark PID 0xC0 as unsupported

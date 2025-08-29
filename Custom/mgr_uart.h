@@ -24,6 +24,7 @@ extern uint16_t modb_db[MODB_SIZE];
 #define FAST_MODE modb_db[0x300]
 
 #define CAN_LOOP_TIME modb_db[0x301] // 0x301
+#define CAN_SLOW_LOOP_TIME modb_db[0x302] // 0x301
 
 //PID support at modbus address 0 to 0xFF
 // since modbus is 16-bit, data is stored across 2 registers for bigger data.
