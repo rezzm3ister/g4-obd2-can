@@ -27,7 +27,7 @@ typedef enum
     CAN_OFF
 } can_state_t;
 
-#define FAST_PID_COUNT 17
+#define FAST_PID_COUNT 18
 
 // bool can_is_pid_supported(uint8_t pid);
 void can_onDataReceivedTurnon();

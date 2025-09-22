@@ -44,6 +44,7 @@ uint8_t fast_pids[FAST_PID_COUNT] = {
     0x4A, // PID 0x4A
     // 0x4B, // PID 0x4B
     0x4C, // PID 0x4C
+    0x78, //EGT
 };
 
 
@@ -238,6 +239,15 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     }
 }
 
+void can_DataProcessingEGT(uint8_t * data)
+{
+    uint32_t val = 0;
+    val = data[1]<<8 | data[0];
+    //assuming the device supports it
+    modb_db[0x100+0x78] = val & 0xFFFF;
+}
+
+
 void can_DataProcessing(uint8_t pid, uint8_t* data, uint8_t len)
 {
     //follow wikipedia list of PIDs for OBD-II
@@ -335,6 +345,7 @@ void can_processSupportedPIDs(void)
         {
             supported_pid[i]=0;
         }
+        supported_pid[0x78] = 1;
         
     }
     can_forceUnsupportedPid();//force to not use the 0x_0 PIDs
@@ -361,8 +372,16 @@ void can_onDataReceived()
     //     default:
     //         break;
     // }
-
-    can_DataProcessing(target_pid,&can_rx_data_buf[3],can_rx_data_buf[0]-2); // Process the received data
+    if(target_pid == 0x78)
+    {
+        can_DataProcessingEGT(&can_rx_data_buf[3]);
+    }
+    else
+    {
+        can_DataProcessing(target_pid,&can_rx_data_buf[3],can_rx_data_buf[0]-2); // Process the received data
+    }
+    
+    
 
     // switch(can_state)
     // {
@@ -583,7 +602,7 @@ bool can_timedout=0;
 void can_timingloop(void)
 {
     can_time++;
-    if(can_time > 0xFFFF) // Reset can_time to prevent overflow
+    if(can_time == 0xFFFF) // Reset can_time to prevent overflow
     {
         can_time = 0;
     }
