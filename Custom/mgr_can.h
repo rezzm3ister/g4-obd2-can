@@ -27,6 +27,10 @@ typedef enum
     CAN_OFF
 } can_state_t;
 
+
+#define PID_TABLE_ROWS 23
+#define PID_TABLE_COLS 4
+
 #define FAST_PID_COUNT 17
 
 // bool can_is_pid_supported(uint8_t pid);

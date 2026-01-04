@@ -22,6 +22,36 @@ uint8_t can_rx_data[8]; // Data buffer for CAN reception
 uint8_t can_rx_data_buf[8]; // Data buffer for CAN reception
 
 
+// target ecu, mode, value
+uint16_t pid_idx=0;
+uint16_t pid_table[PID_TABLE_ROWS * PID_TABLE_COLS] = {
+// uint16_t pid_table[] = {
+    0x7DF, 0x01, 0x04, 0,
+    0x7DF, 0x01, 0x05, 0,
+    0x7DF, 0x01, 0x06, 0,
+    0x7DF, 0x01, 0x0B, 0,
+    0x7DF, 0x01, 0x0C, 0,
+    0x7DF, 0x01, 0x0D, 0,
+    0x7DF, 0x01, 0x0E, 0,
+    0x7DF, 0x01, 0x0F, 0,
+    0x7DF, 0x01, 0x10, 0,
+    0x7DF, 0x01, 0x11, 0,
+    0x7DF, 0x01, 0x14, 0,
+    0x7DF, 0x01, 0x34, 0,
+    0x7DF, 0x01, 0x3C, 0,
+    0x7DF, 0x01, 0x42, 0,
+    0x7DF, 0x01, 0x43, 0,
+    0x7DF, 0x01, 0x44, 0,
+    0x7DF, 0x01, 0x45, 0,
+    0x7DF, 0x01, 0x47, 0,
+    0x7DF, 0x01, 0x49, 0,
+    0x7DF, 0x01, 0x4A, 0,
+    0x7DF, 0x01, 0x4C, 0,
+    0x7E0, 0x22, 0x1310, 0x401, //Oil Temp, 16b
+    0x7E1, 0x22, 0x1E1C, 0x402, //ATF Temp, 16b
+};
+
+
 
 uint8_t fast_pids[FAST_PID_COUNT] = {
     0x04, // PID 0x04
@@ -218,24 +248,31 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         }
     }
 
-    if(can_state == CAN_TURNON_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==turnon_target_pid)
-    {
-        can_state=CAN_TURNON_PROCESSING;
-        // can_onDataReceivedTurnon(); // Process the received CAN message for turn-on requests
-    }
-    else if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
+    if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0)
     {
         memcpy(can_rx_data_buf,can_rx_data,8);
         can_state = CAN_PROCESSING; // Set state to processing after receiving data
         // can_onDataReceived(); // Process the received CAN message
     }
-    else if (can_state == CAN_WAIT_RSP_SLOW && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
-    {
-        memcpy(can_rx_data_buf,can_rx_data,8);
-        can_state = CAN_PROCESSING_SLOW; // Set state to processing after receiving data
+
+    // if(can_state == CAN_TURNON_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==turnon_target_pid)
+    // {
+    //     can_state=CAN_TURNON_PROCESSING;
+    //     // can_onDataReceivedTurnon(); // Process the received CAN message for turn-on requests
+    // }
+    // else if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
+    // {
+    //     memcpy(can_rx_data_buf,can_rx_data,8);
+    //     can_state = CAN_PROCESSING; // Set state to processing after receiving data
+    //     // can_onDataReceived(); // Process the received CAN message
+    // }
+    // else if (can_state == CAN_WAIT_RSP_SLOW && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==target_pid)
+    // {
+    //     memcpy(can_rx_data_buf,can_rx_data,8);
+    //     can_state = CAN_PROCESSING_SLOW; // Set state to processing after receiving data
         
-        // can_onDataReceived(); // Process the received CAN message
-    }
+    //     // can_onDataReceived(); // Process the received CAN message
+    // }
 }
 
 void can_DataProcessing(uint8_t pid, uint8_t* data, uint8_t len)
@@ -341,7 +378,70 @@ void can_processSupportedPIDs(void)
 }
 
 
-void can_onDataReceived()
+void can_onDataReceived(void)
+{
+    uint32_t val = 0;
+    uint8_t bytes_following = 0;
+    uint8_t len = 0;
+    uint8_t data[4];
+    if (can_rx_data_buf[1] > 1)
+    {
+        len = can_rx_data_buf[1]-3;
+        memcpy(data, &can_rx_data_buf[4], 4);
+    }
+    else
+    {
+        len = can_rx_data_buf[1]-2;
+        memcpy(data, &can_rx_data_buf[3], 4);
+
+    }
+
+    switch(len)
+    {
+        case 1:
+            val = data[0];
+            break;
+        case 2:
+            val = (data[0] << 8) | data[1];
+            break;
+        case 3:
+            val = (data[0] << 16) | (data[1] << 8) | data[2];
+            break;
+        case 4:
+            val = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+            break;
+        default:
+            // Handle unexpected length
+            return;
+    }
+
+    switch(can_state)
+    {
+        case CAN_PROCESSING:
+        pid_idx++;
+        can_state=CAN_WRITE;
+        if(pid_idx==PID_TABLE_ROWS)
+        {
+            pid_idx=0;
+        }
+        break;
+        default:
+            break;
+    }
+
+    if(pid_table[pid_idx * PID_TABLE_COLS + 3] > 0)
+    {
+        modb_db[pid_table[pid_idx * PID_TABLE_COLS + 3]] = val;
+    }
+    else
+    {
+        modb_db[0x100+can_rx_data_buf[2]] = val & 0xFFFF; // Store the processed value in the modbus database
+        modb_db[0x200+can_rx_data_buf[2]] = val >> 16;
+    }
+}
+
+
+void can_onDataReceived_Old()
 {
 
     // Process the received data
@@ -447,7 +547,69 @@ bool can_isPIDValid(uint8_t pid)
 
 }
 
+
 void can_sendRequest(void)
+{
+    // switch(can_state)
+    // {
+    //     case CAN_WRITE:
+    //         target_pid = fast_pids[target_pid_fast_idx]; // Use the current target PID for processing
+    //         while(!can_isPIDValid(target_pid))
+    //         {
+    //             target_pid_fast_idx++;
+    //             target_pid = fast_pids[target_pid_fast_idx];
+    //             if(target_pid_fast_idx>FAST_PID_COUNT)
+    //             {
+    //                 target_pid_fast_idx=0;
+    //                 break;
+    //             }
+    //         }
+    //         target_pid = fast_pids[target_pid_fast_idx];
+            
+    //     break;
+    //     default:
+    //     return;
+    //         break;
+    // }
+
+
+    can_tx_header.Identifier = pid_table[PID_TABLE_COLS * pid_idx]; // Standard ID for OBD-II requests
+    can_tx_header.IdType = FDCAN_STANDARD_ID;
+    // can_tx_header.TxFrameType = FDCAN_REMOTE_FRAME;
+    can_tx_header.TxFrameType = FDCAN_DATA_FRAME;
+    can_tx_header.DataLength = FDCAN_DLC_BYTES_8; // OBD-II requests typically use 8 bytes
+    can_tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    can_tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+    can_tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+    can_tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // No Tx event FIFO control
+    can_tx_header.MessageMarker = 0; // Not used in this context
+
+    memset(can_tx_data, 0xFF, 8); // Clear the data buffer
+    // can_tx_data[0]=2;
+    can_tx_data[1]=pid_table[PID_TABLE_COLS * pid_idx + 1]; // OBD-II request
+    // can_tx_data[2]=target_pid; // PID to request
+    if(pid_table[PID_TABLE_COLS * pid_idx + 2] > 0xFF)
+    {
+        can_tx_data[0] = 3;
+
+        can_tx_data[2] = pid_table[PID_TABLE_COLS * pid_idx + 2] >> 8;
+        can_tx_data[3] = pid_table[PID_TABLE_COLS * pid_idx + 2] & 0xFF;
+    }
+    else
+    {
+        can_tx_data[0] = 2;
+        can_tx_data[2] = pid_table[PID_TABLE_COLS * pid_idx + 2] & 0xFF;
+        
+    }
+    if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &can_tx_header, can_tx_data) !=0)
+    {
+        Error_Handler();
+    }
+}
+
+
+
+void can_sendRequest_Old(void)
 {
 
     bool is_valid_pid = 0;
