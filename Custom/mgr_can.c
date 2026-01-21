@@ -22,33 +22,33 @@ uint8_t can_rx_data[8]; // Data buffer for CAN reception
 uint8_t can_rx_data_buf[8]; // Data buffer for CAN reception
 
 
-// target ecu, mode, value
-uint16_t pid_idx=0;
+// target ecu, mode, pid, modb_addr, prio (lower = higher)
+uint8_t pid_idx=0;
+uint8_t pid_idx_slow=0;
+
+uint8_t pid_max_prio[2]; // 2 prio levels: high/low (0/1)
+
 uint16_t pid_table[PID_TABLE_ROWS * PID_TABLE_COLS] = {
 // uint16_t pid_table[] = {
-    0x7DF, 0x01, 0x04, 0,
-    0x7DF, 0x01, 0x05, 0,
     0x7DF, 0x01, 0x06, 0,
     0x7DF, 0x01, 0x0B, 0,
     0x7DF, 0x01, 0x0C, 0,
     0x7DF, 0x01, 0x0D, 0,
     0x7DF, 0x01, 0x0E, 0,
-    0x7DF, 0x01, 0x0F, 0,
-    0x7DF, 0x01, 0x10, 0,
     0x7DF, 0x01, 0x11, 0,
     0x7DF, 0x01, 0x14, 0,
     0x7DF, 0x01, 0x34, 0,
     0x7DF, 0x01, 0x3C, 0,
-    0x7DF, 0x01, 0x42, 0,
-    0x7DF, 0x01, 0x43, 0,
     0x7DF, 0x01, 0x44, 0,
     0x7DF, 0x01, 0x45, 0,
-    0x7DF, 0x01, 0x47, 0,
-    0x7DF, 0x01, 0x49, 0,
-    0x7DF, 0x01, 0x4A, 0,
-    0x7DF, 0x01, 0x4C, 0,
+};
+
+uint16_t pid_table_slow[PID_TABLE_ROWS * PID_TABLE_COLS] = {
+    0x7DF, 0x01, 0x05, 0,
+    0x7DF, 0x01, 0x0F, 0,
     0x7E0, 0x22, 0x1310, 0x401, //Oil Temp, 16b
     0x7E1, 0x22, 0x1E1C, 0x402, //ATF Temp, 16b
+
 };
 
 
@@ -248,12 +248,32 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         }
     }
 
-    if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0)
+    if(can_rx_header.Identifier > 0x7D0)
     {
+        
+        switch(can_state)
+        {
+            case CAN_WAIT_RSP:
+                can_state = CAN_PROCESSING; // Set state to processing after receiving data
+
+            break;
+            case CAN_WAIT_RSP_SLOW:
+                can_state = CAN_PROCESSING_SLOW; // Set state to processing after receiving data
+
+            break;
+            default:
+            return;
+            break;
+        }
         memcpy(can_rx_data_buf,can_rx_data,8);
-        can_state = CAN_PROCESSING; // Set state to processing after receiving data
-        // can_onDataReceived(); // Process the received CAN message
     }
+
+    // if (can_state == CAN_WAIT_RSP && can_rx_header.Identifier >0x7D0)
+    // {
+    //     memcpy(can_rx_data_buf,can_rx_data,8);
+    //     can_state = CAN_PROCESSING; // Set state to processing after receiving data
+    //     // can_onDataReceived(); // Process the received CAN message
+    // }
 
     // if(can_state == CAN_TURNON_WAIT_RSP && can_rx_header.Identifier >0x7D0 && can_rx_data[2]==turnon_target_pid)
     // {
@@ -362,19 +382,40 @@ void can_processSupportedPIDs(void)
     //         }
     //     }
     // }
-    if(support_all)
+    for(uint8_t i=0;i<PID_TABLE_ROWS;i++)
     {
-        for(uint8_t i=0;i<CAN_MAX_PID;i++)
+        uint16_t temp = pid_table[i*PID_TABLE_COLS + 2];
+        if(temp == 0) break;
+        if(temp<=0xFF)
         {
-            supported_pid[i]=1;
-        }
-        for(uint16_t i=CAN_MAX_PID;i<=0xFF;i++)
-        {
-            supported_pid[i]=0;
+            supported_pid[temp] = 1;
         }
         
     }
-    can_forceUnsupportedPid();//force to not use the 0x_0 PIDs
+    for(uint8_t i=0;i<PID_TABLE_ROWS;i++)
+    {
+        uint16_t temp = pid_table_slow[i*PID_TABLE_COLS + 2];
+        if(temp == 0) break;
+
+        if(temp<=0xFF)
+        {
+            supported_pid[temp] = 1;
+        }
+        
+    }
+    // if(support_all)
+    // {
+    //     for(uint8_t i=0;i<CAN_MAX_PID;i++)
+    //     {
+    //         supported_pid[i]=1;
+    //     }
+    //     for(uint16_t i=CAN_MAX_PID;i<=0xFF;i++)
+    //     {
+    //         supported_pid[i]=0;
+    //     }
+        
+    // }
+    // can_forceUnsupportedPid();//force to not use the 0x_0 PIDs
 }
 
 
@@ -420,9 +461,16 @@ void can_onDataReceived(void)
         case CAN_PROCESSING:
         pid_idx++;
         can_state=CAN_WRITE;
-        if(pid_idx==PID_TABLE_ROWS)
+        if(pid_idx==PID_TABLE_ROWS || (pid_table[pid_idx * PID_TABLE_COLS] < 0x700))
         {
             pid_idx=0;
+        }
+        case CAN_PROCESSING_SLOW:
+        pid_idx_slow++;
+        can_state=CAN_WRITE;
+        if(pid_idx_slow==PID_TABLE_ROWS || (pid_table_slow[pid_idx * PID_TABLE_COLS] < 0x700))
+        {
+            pid_idx_slow=0;
         }
         break;
         default:
@@ -520,30 +568,30 @@ void can_onDataReceived_Old()
 
 bool can_isPIDValid(uint8_t pid)
 {
-    bool isvalid=0;
-    if(can_state == CAN_WRITE)
-    {
-		if(supported_pid[pid])
-		{
-			return 1;
-        }
-    }
-    else if (can_state == CAN_WRITE_SLOW)
-    {
+    // bool isvalid=0;
+    // if(can_state == CAN_WRITE)
+    // {
+	// 	if(supported_pid[pid])
+	// 	{
+	// 		return 1;
+    //     }
+    // }
+    // else if (can_state == CAN_WRITE_SLOW)
+    // {
 
-		if(supported_pid[pid])
-		{
-			for(uint8_t j=0;j<FAST_PID_COUNT;j++)
-			{
-				if(pid == fast_pids[j])
-				return 0;
-			}
-			return 1;
-		}
+	// 	if(supported_pid[pid])
+	// 	{
+	// 		for(uint8_t j=0;j<FAST_PID_COUNT;j++)
+	// 		{
+	// 			if(pid == fast_pids[j])
+	// 			return 0;
+	// 		}
+	// 		return 1;
+	// 	}
 
-    }
+    // }
 
-    return 0;
+    // return 0;
 
 }
 
@@ -585,20 +633,40 @@ void can_sendRequest(void)
     can_tx_header.MessageMarker = 0; // Not used in this context
 
     memset(can_tx_data, 0xFF, 8); // Clear the data buffer
+
+    uint16_t * target_table;
+    uint8_t target_pid_idx;
+
+    switch(can_state)
+    {
+        case CAN_WRITE:
+            target_table = pid_table;
+            target_pid_idx = pid_idx;
+            break;
+            case CAN_WRITE_SLOW:
+            target_table = pid_table_slow;
+            target_pid_idx = pid_idx_slow;
+            break;
+        default:
+            return;
+            break;
+    }
+
+
     // can_tx_data[0]=2;
-    can_tx_data[1]=pid_table[PID_TABLE_COLS * pid_idx + 1]; // OBD-II request
+    can_tx_data[1]=target_table[PID_TABLE_COLS * target_pid_idx + 1]; // OBD-II request
     // can_tx_data[2]=target_pid; // PID to request
-    if(pid_table[PID_TABLE_COLS * pid_idx + 2] > 0xFF)
+    if(target_table[PID_TABLE_COLS * target_pid_idx + 2] > 0xFF)
     {
         can_tx_data[0] = 3;
 
-        can_tx_data[2] = pid_table[PID_TABLE_COLS * pid_idx + 2] >> 8;
-        can_tx_data[3] = pid_table[PID_TABLE_COLS * pid_idx + 2] & 0xFF;
+        can_tx_data[2] = target_table[PID_TABLE_COLS * target_pid_idx + 2] >> 8;
+        can_tx_data[3] = target_table[PID_TABLE_COLS * target_pid_idx + 2] & 0xFF;
     }
     else
     {
         can_tx_data[0] = 2;
-        can_tx_data[2] = pid_table[PID_TABLE_COLS * pid_idx + 2] & 0xFF;
+        can_tx_data[2] = target_table[PID_TABLE_COLS * target_pid_idx + 2] & 0xFF;
         
     }
     if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &can_tx_header, can_tx_data) !=0)
@@ -612,7 +680,7 @@ void can_sendRequest(void)
 void can_sendRequest_Old(void)
 {
 
-    bool is_valid_pid = 0;
+    // bool is_valid_pid = 0;
     // do
     // {
     //     if(FAST_MODE)
@@ -634,61 +702,61 @@ void can_sendRequest_Old(void)
     //     }
     // }while(!is_valid_pid);
 
-    switch(can_state)
-    {
-        case CAN_WRITE:
-            target_pid = fast_pids[target_pid_fast_idx]; // Use the current target PID for processing
-            while(!can_isPIDValid(target_pid))
-            {
-                target_pid_fast_idx++;
-                target_pid = fast_pids[target_pid_fast_idx];
-                if(target_pid_fast_idx>FAST_PID_COUNT)
-                {
-                    target_pid_fast_idx=0;
-                    break;
-                }
-            }
-            target_pid = fast_pids[target_pid_fast_idx];
+//     switch(can_state)
+//     {
+//         case CAN_WRITE:
+//             target_pid = fast_pids[target_pid_fast_idx]; // Use the current target PID for processing
+//             while(!can_isPIDValid(target_pid))
+//             {
+//                 target_pid_fast_idx++;
+//                 target_pid = fast_pids[target_pid_fast_idx];
+//                 if(target_pid_fast_idx>FAST_PID_COUNT)
+//                 {
+//                     target_pid_fast_idx=0;
+//                     break;
+//                 }
+//             }
+//             target_pid = fast_pids[target_pid_fast_idx];
             
-        break;
-        case CAN_WRITE_SLOW:
-//            target_pid = target_pid_slow;
-//            if(!can_isPIDValid(target_pid))
-            while(!can_isPIDValid(target_pid_slow))
-            {
-                target_pid_slow++;
-                target_pid = target_pid_slow;
-                if(target_pid_slow == CAN_MAX_PID)
-                {
-                	target_pid_slow = 4;
-                	break;
-                }
-            }
-            target_pid = target_pid_slow;
-        break;
-        default:
-            break;
-    }
+//         break;
+//         case CAN_WRITE_SLOW:
+// //            target_pid = target_pid_slow;
+// //            if(!can_isPIDValid(target_pid))
+//             while(!can_isPIDValid(target_pid_slow))
+//             {
+//                 target_pid_slow++;
+//                 target_pid = target_pid_slow;
+//                 if(target_pid_slow == CAN_MAX_PID)
+//                 {
+//                 	target_pid_slow = 4;
+//                 	break;
+//                 }
+//             }
+//             target_pid = target_pid_slow;
+//         break;
+//         default:
+//             break;
+//     }
 
-    can_tx_header.Identifier = 0x7DF; // Standard ID for OBD-II requests
-    can_tx_header.IdType = FDCAN_STANDARD_ID;
-    // can_tx_header.TxFrameType = FDCAN_REMOTE_FRAME;
-    can_tx_header.TxFrameType = FDCAN_DATA_FRAME;
-    can_tx_header.DataLength = FDCAN_DLC_BYTES_8; // OBD-II requests typically use 8 bytes
-    can_tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-    can_tx_header.BitRateSwitch = FDCAN_BRS_OFF;
-    can_tx_header.FDFormat = FDCAN_CLASSIC_CAN;
-    can_tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // No Tx event FIFO control
-    can_tx_header.MessageMarker = 0; // Not used in this context
+//     can_tx_header.Identifier = 0x7DF; // Standard ID for OBD-II requests
+//     can_tx_header.IdType = FDCAN_STANDARD_ID;
+//     // can_tx_header.TxFrameType = FDCAN_REMOTE_FRAME;
+//     can_tx_header.TxFrameType = FDCAN_DATA_FRAME;
+//     can_tx_header.DataLength = FDCAN_DLC_BYTES_8; // OBD-II requests typically use 8 bytes
+//     can_tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+//     can_tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+//     can_tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+//     can_tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // No Tx event FIFO control
+//     can_tx_header.MessageMarker = 0; // Not used in this context
 
-    memset(can_tx_data, 0xFF, 8); // Clear the data buffer
-    can_tx_data[0]=2;
-    can_tx_data[1]=0x01; // OBD-II request
-    can_tx_data[2]=target_pid; // PID to request
-    if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &can_tx_header, can_tx_data) !=0)
-    {
-        Error_Handler();
-    }
+//     memset(can_tx_data, 0xFF, 8); // Clear the data buffer
+//     can_tx_data[0]=2;
+//     can_tx_data[1]=0x01; // OBD-II request
+//     can_tx_data[2]=target_pid; // PID to request
+//     if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &can_tx_header, can_tx_data) !=0)
+//     {
+//         Error_Handler();
+//     }
     
     // Send a CAN request message
 }
@@ -880,13 +948,20 @@ void can_mainloop(void)
                 can_timedout=0;
                 can_timeout=CAN_TIMEOUT;
                 can_state = CAN_WRITE;
-                target_pid_fast_idx++;
-                if(target_pid_fast_idx==FAST_PID_COUNT)
+                pid_idx++;
+                if(pid_table[pid_idx * PID_TABLE_COLS] == 0 || pid_idx > PID_TABLE_ROWS)
                 {
-                    target_pid_fast_idx=0;
+                    pid_idx = 0;
                     can_state = CAN_WRITE_SLOW;
-                    can_timeout=CAN_TIMEOUT;
+
                 }
+                // target_pid_fast_idx++;
+                // if(target_pid_fast_idx==FAST_PID_COUNT)
+                // {
+                //     target_pid_fast_idx=0;
+                //     can_state = CAN_WRITE_SLOW;
+                //     can_timeout=CAN_TIMEOUT;
+                // }
             }
             break;
             
@@ -910,10 +985,10 @@ void can_mainloop(void)
                 if(modb_db[target_pid + 0x400]==0xFFFF)  modb_db[target_pid + 0x400]=0;
                 can_timeout=CAN_TIMEOUT;
                 can_state = CAN_WRITE;
-                target_pid_slow++;
-                if(target_pid_slow==CAN_MAX_PID)
+                pid_idx_slow++;
+                if(pid_idx_slow==PID_TABLE_ROWS || (pid_table_slow[pid_idx_slow * PID_TABLE_COLS] < 0x700))
                 {
-                    target_pid_slow=0;
+                    pid_idx_slow=0;
                 }
             }
             break;
