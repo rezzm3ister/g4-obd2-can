@@ -1,4 +1,4 @@
 ../Custom/appl_main.c:19:6:custom_init	1
 ../Custom/appl_main.c:29:6:timing_loop	2
-../Custom/appl_main.c:50:6:sec_loop	1
-../Custom/appl_main.c:68:6:main_loop	2
+../Custom/appl_main.c:52:6:sec_loop	1
+../Custom/appl_main.c:70:6:main_loop	2

@@ -11,7 +11,7 @@ from datetime import datetime
 
 app=QApplication(sys.argv)
 
-MODB_SIZE=0x400
+MODB_SIZE=0x500
 MODB_MAX_RD_REGS=0x7D
 GRID_MAX_ROWS = 0x18
 DIAG_GRID_ROW_START = 5
@@ -165,6 +165,9 @@ OBD_PIDS = {
     0x7D: "NOx NTE control area status",
     0x7E: "NOx NTE Control Area Status",
     0x7F: "Engine run time",
+
+    0x401: "CUSTOM: OIL TEMP",
+    0x402: "CUSTOM: ATF TEMP",
     #anything after this is useless for now
 }
 
@@ -177,10 +180,14 @@ class ModbThread(QThread):
         temp_supported_regs = modb.read_registers(0, 0x7D)
         temp_supported_regs2 = modb.read_registers(0x7D, 0x7D)
         temp_supported_regs += temp_supported_regs2
+        # temp_supported_regs.append(0x401)
+        # temp_supported_regs.append(0x402)
         supported_registers = []
         for i in range(len(temp_supported_regs)):
             if temp_supported_regs[i] > 0:
                 supported_registers.append((i))
+        supported_registers.append(0x401)
+        supported_registers.append(0x402)
         # print("Supported registers:", supported_registers)
 
     def process_modb_db(self):
@@ -198,62 +205,72 @@ class ModbThread(QThread):
 
         for i in range(len(modb_db)):
             if i in supported_registers:
-                val = (modb_db[i + 0x200] << 16) | (modb_db[i + 0x100] & 0xFFFF)
-                if i in percent_registers:
-                    val = (val / 255.0) * 100.0
-                elif i in temperature_1b_registers:
-                    val = val-40
-                elif i in temperature_2b_registers:
-                    val  =(val/10)-40
-                elif i in fuel_trim_registers:
-                    val = (val/128)-100
-                elif i in o2_sensor_registers_group1:
-                    val = val/200
-                elif i in o2_sensor_registers_group2:
-                    val = val*2/65536
-                elif i in o2_sensor_registers_group3:
-                    val = (val>>16)*2/65536
-                elif i in o2_sensor_registers_group4:
-                    val =val*100/128 - 100
-                elif i == 0x0A:  # Fuel pressure
-                    val = 3*val
-                elif i == 0x0C:  # Engine RPM
-                    val=val/4
-                elif i == 0x0E:  # Timing advance
-                    val = (val / 2.0) - 64.0
-                elif i == 0x10:  # MAF air flow rate
-                    val = val / 100.0
-                elif i == 0x22:
-                    val = val * 0.079
-                elif i == 0x23:
-                    val=val*10
-                elif i == 0x2D:
-                    val = val*100/128 -100
-                elif i == 0x32:
-                    val = val/4
-                elif i == 0x42:
-                    val = val/1000
-                elif i == 0x44:
-                    val = val * 2 / 65536
-                elif i == 0x50:
-                    val = val*10
-                elif i == 0x53:
-                    val = val/200
-                elif i == 0x59:
-                    val = val*10
-                elif i == 0x5D:
-                    val = val/128-210
-                elif i == 0x5E:
-                    val = val/20
-                elif i == 0x61:
-                    val = val-125
-                elif i == 0x62:
-                    val = val-125
-                
-                #i cant be assed to make more if statements, so just make the rest read raw
+                if i<0x100:
+                    val = (modb_db[i + 0x200] << 16) | (modb_db[i + 0x100] & 0xFFFF)
+                    if i in percent_registers:
+                        val = (val / 255.0) * 100.0
+                    elif i in temperature_1b_registers:
+                        val = val-40
+                    elif i in temperature_2b_registers:
+                        val  =(val/10)-40
+                    elif i in fuel_trim_registers:
+                        val = (val/128)-100
+                    elif i in o2_sensor_registers_group1:
+                        val = val/200
+                    elif i in o2_sensor_registers_group2:
+                        val = val*2/65536
+                    elif i in o2_sensor_registers_group3:
+                        val = (val>>16)*2/65536
+                    elif i in o2_sensor_registers_group4:
+                        val =val*100/128 - 100
+                    elif i == 0x0A:  # Fuel pressure
+                        val = 3*val
+                    elif i == 0x0C:  # Engine RPM
+                        val=val/4
+                    elif i == 0x0E:  # Timing advance
+                        val = (val / 2.0) - 64.0
+                    elif i == 0x10:  # MAF air flow rate
+                        val = val / 100.0
+                    elif i == 0x22:
+                        val = val * 0.079
+                    elif i == 0x23:
+                        val=val*10
+                    elif i == 0x2D:
+                        val = val*100/128 -100
+                    elif i == 0x32:
+                        val = val/4
+                    elif i == 0x42:
+                        val = val/1000
+                    elif i == 0x44:
+                        val = val * 2 / 65536
+                    elif i == 0x50:
+                        val = val*10
+                    elif i == 0x53:
+                        val = val/200
+                    elif i == 0x59:
+                        val = val*10
+                    elif i == 0x5D:
+                        val = val/128-210
+                    elif i == 0x5E:
+                        val = val/20
+                    elif i == 0x61:
+                        val = val-125
+                    elif i == 0x62:
+                        val = val-125
+                    elif i == 0x401:
+                        val = val/100-40
+                    elif i == 0x402:
+                        val = val/16
+                    
+                    #i cant be assed to make more if statements, so just make the rest read raw
+                    else:
+                        None
+                        # print((hex(i)))
                 else:
-                    None
-                    # print((hex(i)))
+                    if i == 0x401:
+                        val = val/100-40
+                    elif i == 0x402:
+                        val = val/16
             else:
                 val = 0
             processed_modb_db[i] = val
@@ -284,6 +301,9 @@ class ModbThread(QThread):
                 rx_modb = modb.read_registers(0x300, 10)
                 for i in range(len(rx_modb)):
                     modb_db[i+0x300] = rx_modb[i]
+                rx_modb = modb.read_registers(0x400,2)
+                for i in range(len(rx_modb)):
+                    modb_db[i+0x400] = rx_modb[i]
 
                 cycle_readtime = time.time() - internal_cycle_readtime
                 can_interval = modb_db[0x301]/10
@@ -410,6 +430,8 @@ class MainWindow(QMainWindow):
         for i in supported_registers:
             self.pid_widget_list.append(QLabel(str(hex(i)) + " " + OBD_PIDS.get(i, "Unknown PID")))
             self.pid_data_list.append([QLabel("0"),i])
+        # self.pid_widget_list.append(QLabel(str(hex(i)) + " " + OBD_PIDS.get(i, "Unknown PID")))
+        # self.pid_data_list.append([QLabel("0"),i])
             # print("added PID:", hex(i))
         wrow=DIAG_GRID_ROW_START
         wcol=0
