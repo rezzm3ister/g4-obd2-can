@@ -12,7 +12,8 @@ uint16_t can_time=0;
 
 uint16_t target_pid_slow = 0x00; // Default PID to request in slow mode
 uint16_t target_pid_fast_idx = 0x00; // Default PID to request in fast mode
-
+uint16_t timeouts = 0;
+uint16_t timeouts_slow = 0;
 bool support_all=true;
 
 FDCAN_TxHeaderTypeDef can_tx_header;
@@ -36,7 +37,7 @@ uint16_t pid_table[PID_TABLE_ROWS * PID_TABLE_COLS] = {
     0x7DF, 0x01, 0x0D, 0,
     0x7DF, 0x01, 0x0E, 0,
     0x7DF, 0x01, 0x11, 0,
-    0x7DF, 0x01, 0x14, 0,
+    // 0x7DF, 0x01, 0x14, 0,
     0x7DF, 0x01, 0x34, 0,
     0x7DF, 0x01, 0x3C, 0,
     0x7DF, 0x01, 0x44, 0,
@@ -421,18 +422,19 @@ void can_processSupportedPIDs(void)
 
 void can_onDataReceived(void)
 {
-    uint32_t val = 0;
+    volatile uint32_t val = 0;
     uint8_t bytes_following = 0;
     uint8_t len = 0;
     uint8_t data[4];
-    if (can_rx_data_buf[1] > 1)
+    bool bad = 0;
+    if (can_rx_data_buf[1] != 0x41)
     {
-        len = can_rx_data_buf[1]-3;
+        len = can_rx_data_buf[0]-3;
         memcpy(data, &can_rx_data_buf[4], 4);
     }
     else
     {
-        len = can_rx_data_buf[1]-2;
+        len = can_rx_data_buf[0]-2;
         memcpy(data, &can_rx_data_buf[3], 4);
 
     }
@@ -453,9 +455,46 @@ void can_onDataReceived(void)
             break;
         default:
             // Handle unexpected length
-            return;
+            val = 0;
     }
+    
+    switch(can_state)
+    {
+        case CAN_PROCESSING:
+            if(pid_table[pid_idx * PID_TABLE_COLS + 3] > 0)
+            {
+                modb_db[pid_table[pid_idx * PID_TABLE_COLS + 3]] = val;
+            }
+            else
+            {
+                modb_db[0x100+can_rx_data_buf[2]] = val & 0xFFFF; // Store the processed value in the modbus database
+                modb_db[0x200+can_rx_data_buf[2]] = val >> 16;
+            }
+        break;
+        case CAN_PROCESSING_SLOW:
+            if(pid_table_slow[pid_idx_slow * PID_TABLE_COLS + 3] > 0)
 
+            {
+                if(val > 0xFF)
+                modb_db[pid_table_slow[pid_idx_slow * PID_TABLE_COLS + 3]] = val;
+            }
+            else
+            {
+                modb_db[0x100+can_rx_data_buf[2]] = val & 0xFFFF; // Store the processed value in the modbus database
+                modb_db[0x200+can_rx_data_buf[2]] = val >> 16;
+            }
+
+        break;
+    }
+    // if(pid_table[pid_idx * PID_TABLE_COLS + 3] > 0)
+    // {
+    //     modb_db[pid_table[pid_idx * PID_TABLE_COLS + 3]] = val;
+    // }
+    // else
+    // {
+    //     modb_db[0x100+can_rx_data_buf[2]] = val & 0xFFFF; // Store the processed value in the modbus database
+    //     modb_db[0x200+can_rx_data_buf[2]] = val >> 16;
+    // }
     switch(can_state)
     {
         case CAN_PROCESSING:
@@ -468,23 +507,13 @@ void can_onDataReceived(void)
         case CAN_PROCESSING_SLOW:
         pid_idx_slow++;
         can_state=CAN_WRITE;
-        if(pid_idx_slow==PID_TABLE_ROWS || (pid_table_slow[pid_idx * PID_TABLE_COLS] < 0x700))
+        if(pid_idx_slow==PID_TABLE_ROWS || (pid_table_slow[pid_idx_slow * PID_TABLE_COLS] < 0x700))
         {
             pid_idx_slow=0;
         }
         break;
         default:
             break;
-    }
-
-    if(pid_table[pid_idx * PID_TABLE_COLS + 3] > 0)
-    {
-        modb_db[pid_table[pid_idx * PID_TABLE_COLS + 3]] = val;
-    }
-    else
-    {
-        modb_db[0x100+can_rx_data_buf[2]] = val & 0xFFFF; // Store the processed value in the modbus database
-        modb_db[0x200+can_rx_data_buf[2]] = val >> 16;
     }
 }
 
@@ -955,6 +984,7 @@ void can_mainloop(void)
                     can_state = CAN_WRITE_SLOW;
 
                 }
+                timeouts++;
                 // target_pid_fast_idx++;
                 // if(target_pid_fast_idx==FAST_PID_COUNT)
                 // {
@@ -981,8 +1011,8 @@ void can_mainloop(void)
             if(can_timedout)
             {
                 can_timedout=0;
-                modb_db[target_pid + 0x400]++;
-                if(modb_db[target_pid + 0x400]==0xFFFF)  modb_db[target_pid + 0x400]=0;
+                // modb_db[target_pid + 0x400]++;
+                // if(modb_db[target_pid + 0x400]==0xFFFF)  modb_db[target_pid + 0x400]=0;
                 can_timeout=CAN_TIMEOUT;
                 can_state = CAN_WRITE;
                 pid_idx_slow++;
@@ -990,6 +1020,7 @@ void can_mainloop(void)
                 {
                     pid_idx_slow=0;
                 }
+                timeouts_slow++;
             }
             break;
         case CAN_PROCESSING_SLOW:

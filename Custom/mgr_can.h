@@ -3,7 +3,7 @@
 #include "appl_main.h"
 
 #define CAN_WAKEUP_TIME 30000
-#define CAN_TIMEOUT 125
+#define CAN_TIMEOUT 150
 // #define CAN_TIMEOUT_FAST 250
 #define CAN_STARTUP_TIMEOUT 1000
 // #define CAN_MAX_PID 0x80
