@@ -97,10 +97,10 @@ OBD_PIDS = {
     0x39: "Oxygen sensor 6",
     0x3A: "Oxygen sensor 7",
     0x3B: "Oxygen sensor 8",
-    0x3C: "Catalyst temperature bank 1, sensor 1",
-    0x3D: "Catalyst temperature bank 1, sensor 2",
-    0x3E: "Catalyst temperature bank 2, sensor 1",
-    0x3F: "Catalyst temperature bank 2, sensor 2",
+    0x3C: "Catalyst temperature bank 1 sensor 1",
+    0x3D: "Catalyst temperature bank 1 sensor 2",
+    0x3E: "Catalyst temperature bank 2 sensor 1",
+    0x3F: "Catalyst temperature bank 2 sensor 2",
     0x40: "PIDs supported [41-60]",
     0x41: "Monitor status this drive",
     0x42: "Control module voltage",
@@ -257,20 +257,18 @@ class ModbThread(QThread):
                         val = val-125
                     elif i == 0x62:
                         val = val-125
-                    elif i == 0x401:
-                        val = val/100-40
-                    elif i == 0x402:
-                        val = val/16
+                    
                     
                     #i cant be assed to make more if statements, so just make the rest read raw
                     else:
                         None
                         # print((hex(i)))
-                else:
-                    if i == 0x401:
-                        val = val/100-40
-                    elif i == 0x402:
-                        val = val/16
+                elif i == 0x401:
+                    val = modb_db[0x401]
+                    val = val/100-40
+                elif i == 0x402:
+                    val = modb_db[0x402]
+                    val = val/16
             else:
                 val = 0
             processed_modb_db[i] = val
@@ -301,7 +299,7 @@ class ModbThread(QThread):
                 rx_modb = modb.read_registers(0x300, 10)
                 for i in range(len(rx_modb)):
                     modb_db[i+0x300] = rx_modb[i]
-                rx_modb = modb.read_registers(0x400,2)
+                rx_modb = modb.read_registers(0x400,5)
                 for i in range(len(rx_modb)):
                     modb_db[i+0x400] = rx_modb[i]
 
@@ -468,7 +466,8 @@ class MainWindow(QMainWindow):
             if log_file is None:
                 log_file = open("obd2_log"+datetime.now().strftime("%Y%m%d_%H%M%S")+".csv", "w")
                 for reg in supported_registers:
-                    csv_header += str(hex(reg)) + ","
+                    csv_header += str(OBD_PIDS[reg]) + ","
+                    # csv_header += str(hex(reg)) + ","
                 log_file.write(csv_header + "\n")
         else:
             print("Logging stopped")
@@ -546,7 +545,7 @@ class MainWindow(QMainWindow):
             if processed_modb_db[self.pid_data_list[i][1]] > 0:
                 self.pid_data_list[i][0].setStyleSheet("background-color: lightgreen")
             else:
-                self.pid_data_list[i][0].setStyleSheet("background-color: white")
+                self.pid_data_list[i][0].setStyleSheet("background-color: white")     
         # self.test_label = QLabel("testreg: " + str(int(modb_db[0])))
         # global modb_db, com_port, modb_addr, baudrate, sys_run
         # if sys_run  :
