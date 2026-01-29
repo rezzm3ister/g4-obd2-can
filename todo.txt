@@ -1,0 +1,3 @@
+to do:
+add secondary protocol to uart to r/w target pids and settings
+convert can readout to reading multiple standard pids

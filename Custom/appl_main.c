@@ -28,6 +28,7 @@ void custom_init(void)
 //does things every 0.1ms
 void timing_loop(void) //10khz
 {
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,1);
     main_loop_timer++;
     if(t1<10000)
     {
@@ -41,6 +42,7 @@ void timing_loop(void) //10khz
     can_timingloop();
     // relay_1k();
     uart_1msloop(); 
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,0);
 
 }
 
@@ -80,6 +82,6 @@ void main_loop(void)
     can_mainloop();
     // update_led();
     // relay_update();
-    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, 0);
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_11);
 }
 
