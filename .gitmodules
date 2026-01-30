@@ -1,0 +1,3 @@
+[submodule "modules/g4-lib-i2c"]
+	path = modules/g4-lib-i2c
+	url = https://github.com/rezzm3ister/g4-lib-i2c.git

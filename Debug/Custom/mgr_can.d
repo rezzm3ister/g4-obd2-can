@@ -30,6 +30,17 @@ Custom/mgr_can.o: ../Custom/mgr_can.c ../Custom/mgr_can.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_uart.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_uart_ex.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_i2c.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_bus.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_cortex.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_rcc.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_system.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_utils.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_pwr.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_gpio.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_dma.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_dmamux.h \
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_exti.h \
  .././Custom/appl_main.h ../Custom/mgr_uart.h ../Custom/lib_modbus.h
 ../Custom/mgr_can.h:
 ../Custom/appl_main.h:
@@ -64,6 +75,17 @@ Custom/mgr_can.o: ../Custom/mgr_can.c ../Custom/mgr_can.h \
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_uart.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_uart_ex.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_i2c.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_bus.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_cortex.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_rcc.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_system.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_utils.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_pwr.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_gpio.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_dma.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_dmamux.h:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_exti.h:
 .././Custom/appl_main.h:
 ../Custom/mgr_uart.h:
 ../Custom/lib_modbus.h:

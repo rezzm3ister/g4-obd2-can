@@ -3,6 +3,7 @@
 // #include "mgr_i2c.h"
 #include "mgr_uart.h"
 #include "mgr_can.h"
+#include "mgr_i2c.h"
 
 
 extern TIM_HandleTypeDef htim1;
@@ -19,10 +20,13 @@ uint32_t main_loop_timer=0;
 void custom_init(void)
 {
     // HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_NVIC_SetPriority(I2C1_EV_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
     HAL_TIM_Base_Start_IT(&htim1);
     uart_init();
-
     can_init();
+    lcd_init();
+    lcd_clear();
 }
 
 //does things every 0.1ms
@@ -40,8 +44,10 @@ void timing_loop(void) //10khz
         one_sec_flag=1;
     }
     can_timingloop();
+    i2c_timingloop();
     // relay_1k();
     uart_1msloop(); 
+    gpio_timingloop();
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,0);
 
 }
@@ -80,6 +86,7 @@ void main_loop(void)
     }
     uart_mainloop();
     can_mainloop();
+    i2c_mainloop();
     // update_led();
     // relay_update();
     HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_11);

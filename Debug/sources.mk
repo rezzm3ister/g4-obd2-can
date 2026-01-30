@@ -28,4 +28,5 @@ Core/Src \
 Core/Startup \
 Custom \
 Drivers/STM32G4xx_HAL_Driver/Src \
+linked \
 

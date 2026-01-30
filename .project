@@ -29,4 +29,11 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>linked/lib_i2c.c</name>
+			<type>1</type>
+			<locationURI>PROJECT_LOC/modules/g4-lib-i2c/lib_i2c.c</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
