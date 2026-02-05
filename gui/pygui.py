@@ -280,38 +280,41 @@ class ModbThread(QThread):
         fastmode_timer=time.time()
         print("Modbus thread started")
         while True:
-            if sys_run:
-                if(time.time() - fastmode_timer > 5):
-                    if fast_mode:
-                        modb.write_register(0x300,1,functioncode=6)
-                    else:
-                        modb.write_register(0x300,0,functioncode=6)
-                    fastmode_timer = time.time()
-                # starttime = time.time()
-                # starttime = time.time()
-                internal_cycle_readtime = time.time()
-                rx_modb = modb.read_registers(0x100, MODB_MAX_RD_REGS)
-                for i in range(len(rx_modb)):
-                    modb_db[i+0x100] = rx_modb[i]
-                rx_modb = modb.read_registers(0x200, MODB_MAX_RD_REGS)
-                for i in range(len(rx_modb)):
-                    modb_db[i+0x200] = rx_modb[i]
-                rx_modb = modb.read_registers(0x300, 10)
-                for i in range(len(rx_modb)):
-                    modb_db[i+0x300] = rx_modb[i]
-                rx_modb = modb.read_registers(0x400,5)
-                for i in range(len(rx_modb)):
-                    modb_db[i+0x400] = rx_modb[i]
+            try:
+                if sys_run:
+                    if(time.time() - fastmode_timer > 5):
+                        if fast_mode:
+                            modb.write_register(0x300,1,functioncode=6)
+                        else:
+                            modb.write_register(0x300,0,functioncode=6)
+                        fastmode_timer = time.time()
+                    # starttime = time.time()
+                    # starttime = time.time()
+                    internal_cycle_readtime = time.time()
+                    rx_modb = modb.read_registers(0x100, MODB_MAX_RD_REGS)
+                    for i in range(len(rx_modb)):
+                        modb_db[i+0x100] = rx_modb[i]
+                    rx_modb = modb.read_registers(0x200, MODB_MAX_RD_REGS)
+                    for i in range(len(rx_modb)):
+                        modb_db[i+0x200] = rx_modb[i]
+                    rx_modb = modb.read_registers(0x300, 10)
+                    for i in range(len(rx_modb)):
+                        modb_db[i+0x300] = rx_modb[i]
+                    rx_modb = modb.read_registers(0x400,5)
+                    for i in range(len(rx_modb)):
+                        modb_db[i+0x400] = rx_modb[i]
 
-                cycle_readtime = time.time() - internal_cycle_readtime
-                can_interval = modb_db[0x301]/10
-                self.process_modb_db()
-                if(log_enabled and log_file is not None):
-                    log_line = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ","
-                    for reg in supported_registers:
-                        log_line += str(processed_modb_db[reg]) + ","
-                    log_file.write(log_line + "\n")
-                # print("Cycle read time:", cycle_readtime)
+                    cycle_readtime = time.time() - internal_cycle_readtime
+                    can_interval = modb_db[0x301]/10
+                    self.process_modb_db()
+                    if(log_enabled and log_file is not None):
+                        log_line = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ","
+                        for reg in supported_registers:
+                            log_line += str(processed_modb_db[reg]) + ","
+                        log_file.write(log_line + "\n")
+                    # print("Cycle read time:", cycle_readtime)
+            except Exception as e:
+                print("Error Occurred:",e)
 
 
 class MainWindow(QMainWindow):
