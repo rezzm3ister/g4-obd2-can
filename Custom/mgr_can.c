@@ -180,6 +180,53 @@ bool can_isBusAlive(void)
     return false; // If no PIDs are supported, the bus is considered dead
 }
 
+float can_getActualAFR(void)
+{
+    return (modb_db[0x234]<<16)*2.0/65536.0;
+}
+float can_getTargetAFR(void)
+{
+    return (modb_db[0x144])*2.0/65536.0;
+
+}
+float can_getCoolantTemp(void)
+{
+    return (float)(modb_db[0x105])-40.0;
+}
+float can_getEngineOilTemp(void)
+{
+    #ifdef MAZDA
+    return (((float)modb_db[0x401])/100.0 - 40);
+    #else
+    return (modb_db[0x15c]-40);
+    #endif
+}
+float can_getTransFluidTemp(void)
+{
+    #ifdef MAZDA
+    return (((float)modb_db[0x402])/16.0);
+    #else
+    return 0;
+    #endif
+}
+float can_getExhaustGasTemp(void)
+{
+    return (((float)modb_db[0x13c])/10.0-40);
+
+}
+
+float can_GetIgnAdvance(void)
+{
+    return ((float)modb_db[0x10E])/2.0-64.0;
+}
+
+float can_GetIntakeAirTemp(void)
+{
+    return ((float)modb_db[0x10F])-40.0;
+}
+
+
+
 bool can_isFastPID(uint8_t pid)
 {
     switch(pid)

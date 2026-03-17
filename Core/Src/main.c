@@ -98,6 +98,7 @@ int main(void)
   MX_FDCAN1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_Delay(1000);
   custom_init();
   /* USER CODE END 2 */
 

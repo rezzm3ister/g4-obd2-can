@@ -11,6 +11,8 @@
 // #define CAN_START_PID 0x04
 // #define CAN_DEBUG
 
+#define MAZDA
+
 typedef enum
 {
     CAN_INIT=0,
@@ -32,7 +34,14 @@ typedef enum
 #define PID_TABLE_COLS 4
 
 #define FAST_PID_COUNT 17
-
+float can_getActualAFR(void);
+float can_getTargetAFR(void);
+float can_getCoolantTemp(void);
+float can_getEngineOilTemp(void);
+float can_getTransFluidTemp(void);
+float can_getExhaustGasTemp(void);
+float can_GetIgnAdvance(void);
+float can_GetIntakeAirTemp(void);
 // bool can_is_pid_supported(uint8_t pid);
 void can_onDataReceivedTurnon();
 void can_onDataReceived();

@@ -23,6 +23,7 @@ void custom_init(void)
     HAL_NVIC_SetPriority(I2C1_EV_IRQn, 3, 0);
     HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
     HAL_TIM_Base_Start_IT(&htim1);
+    // HAL_Delay(1000);
     uart_init();
     can_init();
     lcd_init();

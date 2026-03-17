@@ -1,4 +1,4 @@
 ../Custom/appl_main.c:20:6:custom_init	8	static
-../Custom/appl_main.c:33:6:timing_loop	8	static
-../Custom/appl_main.c:58:6:sec_loop	0	static
-../Custom/appl_main.c:76:6:main_loop	16	static
+../Custom/appl_main.c:34:6:timing_loop	8	static
+../Custom/appl_main.c:59:6:sec_loop	0	static
+../Custom/appl_main.c:77:6:main_loop	16	static

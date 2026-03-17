@@ -5,6 +5,7 @@
 #include "lib_i2c.h"
 #include "mgr_uart.h"
 #include "mgr_gpio.h"
+#include "mgr_can.h"
 
 i2c_queue_t i2c_lcd = 
 {
@@ -166,29 +167,29 @@ void i2c_mainloop(void)
 			case LCD_MODE_TUNER:
 				sprintf(lcd_q1,"AFR:");
 				sprintf(lcd_tmp_buf,"%f",14.7);
-				memcpy(&lcd_q1[4],lcd_tmp_buf,4);
+				memcpy(&lcd_q1[4],lcd_tmp_buf,can_getActualAFR());
 				sprintf(lcd_q2,"TGT:");
-				sprintf(lcd_tmp_buf,"%f",14.3);
+				sprintf(lcd_tmp_buf,"%f",can_getTargetAFR());
 				memcpy(&lcd_q2[4],lcd_tmp_buf,4);
 				sprintf(lcd_q3,"IGN:");
-				sprintf(lcd_tmp_buf,"%d",23);
+				sprintf(lcd_tmp_buf,"%f",can_GetIgnAdvance());
 				memcpy(&lcd_q3[4],lcd_tmp_buf,4);
 				sprintf(lcd_q4,"IAT:");
-				sprintf(lcd_tmp_buf,"%d",32);
+				sprintf(lcd_tmp_buf,"%f",can_GetIntakeAirTemp());
 				memcpy(&lcd_q4[4],lcd_tmp_buf,4);
 				break;
 			case LCD_MODE_NORMAL: //specific to mazda for now
 				sprintf(lcd_q1,"AFR:");
-				sprintf(lcd_tmp_buf,"%f",14.77);
+				sprintf(lcd_tmp_buf,"%f",can_getActualAFR());
 				memcpy(&lcd_q1[4],lcd_tmp_buf,4);
 				sprintf(lcd_q2,"TFT:");
-				sprintf(lcd_tmp_buf,"%f",92.4);
+				sprintf(lcd_tmp_buf,"%f",can_getTransFluidTemp());
 				memcpy(&lcd_q2[4],lcd_tmp_buf,4);
 				sprintf(lcd_q3,"CLT:");
-				sprintf(lcd_tmp_buf,"%f",88.0);
+				sprintf(lcd_tmp_buf,"%f",can_getCoolantTemp());
 				memcpy(&lcd_q3[4],lcd_tmp_buf,4);
 				sprintf(lcd_q4,"EOT:");
-				sprintf(lcd_tmp_buf,"%f",666.0);
+				sprintf(lcd_tmp_buf,"%f",can_getEngineOilTemp());
 				memcpy(&lcd_q4[4],lcd_tmp_buf,4);
 
 				break;
