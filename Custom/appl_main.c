@@ -1,6 +1,7 @@
 #include "appl_main.h"
 // #include "mgr_led.h"
 // #include "mgr_i2c.h"
+#include "mgr_adc.h"
 #include "mgr_uart.h"
 #include "mgr_can.h"
 #include "mgr_i2c.h"
@@ -28,6 +29,7 @@ void custom_init(void)
     can_init();
     lcd_init();
     lcd_clear();
+    adc_init();
 }
 
 //does things every 0.1ms

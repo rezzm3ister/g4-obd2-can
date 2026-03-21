@@ -1,6 +1,6 @@
 #include "mgr_uart.h"
 // #include "mgr_i2c.h"
-
+#include "mgr_adc.h"
 extern UART_HandleTypeDef huart1;
 
 
@@ -113,6 +113,12 @@ void uart_mainloop(void)
         // uart_state = UART_TRANSMITTING;
     }
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1,uart_rx_buffer,300);
+
+    modb_db[0x500] = adc_GetRawAdcValue(0);
+    modb_db[0x501] = adc_GetRawAdcValue(1);
+    modb_db[0x502] = adc_GetRawAdcValue(2);
+    modb_db[0x503] = adc_GetRawAdcValue(3);
+    modb_db[0x504] = adc_GetRawAdcValue(4);
 
     // uart_testwrite();
 

@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -97,6 +98,7 @@ int main(void)
   MX_TIM1_Init();
   MX_FDCAN1_Init();
   MX_I2C1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(1000);
   custom_init();
