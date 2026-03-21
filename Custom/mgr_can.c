@@ -182,7 +182,7 @@ bool can_isBusAlive(void)
 
 float can_getActualAFR(void)
 {
-    return (modb_db[0x234]<<16)*2.0/65536.0;
+    return (modb_db[0x234])*2.0/65536.0;
 }
 float can_getTargetAFR(void)
 {

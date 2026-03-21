@@ -130,7 +130,7 @@ void I2C1_EV_IRQHandler(void)
 
 
 uint32_t lcd_timer = 0;
-#define lcd_update_interval 2500
+#define lcd_update_interval 2000
 bool lcd_send = 0;
 
 void i2c_timingloop(void)
@@ -166,8 +166,8 @@ void i2c_mainloop(void)
 		{
 			case LCD_MODE_TUNER:
 				sprintf(lcd_q1,"AFR:");
-				sprintf(lcd_tmp_buf,"%f",14.7);
-				memcpy(&lcd_q1[4],lcd_tmp_buf,can_getActualAFR());
+				sprintf(lcd_tmp_buf,"%f",can_getActualAFR());
+				memcpy(&lcd_q1[4],lcd_tmp_buf,4);
 				sprintf(lcd_q2,"TGT:");
 				sprintf(lcd_tmp_buf,"%f",can_getTargetAFR());
 				memcpy(&lcd_q2[4],lcd_tmp_buf,4);
